@@ -138,7 +138,7 @@ fragmentShader =
         varying vec3 vcolor;
         varying vec3 vposition;
         void main () {
-            float opacity = sin(vposition.x - time);
+            float opacity = fract(vposition.x - time);
             gl_FragColor = opacity * shade * vec4(vcolor, 1.0);
         }
     |]
