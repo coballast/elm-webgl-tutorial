@@ -72,21 +72,24 @@ uniforms time =
 
 
 type alias Vertex =
-    { color : Vec3
-    , position : Vec3
+
+    {
+    position : Vec3,
+         color : Vec3
     }
 
+-- love ashish
 
 cubeMesh : Mesh Vertex
 cubeMesh =
     let
-        bottomRight =
+        topLeft =
             vec3 1 -1 0
         topRight =
             vec3 1 1 0
         bottomLeft =
             vec3 -1 -1 0
-        topLeft =
+        bottomRight =
             vec3 -1 1 0
         red =
             vec3 1 0 0
@@ -96,8 +99,8 @@ cubeMesh =
             vec3 0 0 1 
        in
             [
-                (Vertex bottomLeft green, Vertex topRight green, Vertex topLeft red),
-                (Vertex bottomLeft red, Vertex bottomRight red, Vertex topRight red)
+                (Vertex topLeft green, Vertex topRight green, Vertex bottomRight red),
+                (Vertex bottomRight red, Vertex bottomLeft red, Vertex topLeft red)
             ] 
             |> WebGL.triangles
 
@@ -134,6 +137,6 @@ fragmentShader =
         varying vec3 vposition;
         void main () {
             float opacity = fract(vposition.x - time);
-            gl_FragColor = opacity * shade * vec4(vcolor, 1.0);
+            gl_FragColor = vec4(vcolor, 1.0);
         }
     |]
