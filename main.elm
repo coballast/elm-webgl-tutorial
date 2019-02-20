@@ -4,32 +4,43 @@ module Main exposing (main)
    Rotating cube with colored sides.
 -}
 
-import AnimationFrame
-import Color exposing (Color)
+import Browser.Events as E
 import Html exposing (Html)
-import Html.Attributes exposing (width, height, style)
+import Html.Attributes exposing (height, style, width)
 import Math.Matrix4 as Mat4 exposing (Mat4)
-import Math.Vector3 as Vec3 exposing (vec3, Vec3)
-import Time exposing (Time)
+import Math.Vector3 as Vec3 exposing (Vec3, vec3)
+import Browser
 import WebGL exposing (Mesh, Shader)
 
 
-main : Program Never Float Time
+
+type alias Model = Float
+type Msg = NewDiff Float
+
+
+update :  Msg -> Model -> (Model, Cmd Msg)
+update msg timeElapsed =
+    case msg of
+        NewDiff dt ->
+            ( timeElapsed + dt / 200, Cmd.none )
+
+
+main : Program () Model Msg
 main =
-    Html.program
-        { init = ( 0, Cmd.none )
+    Browser.element
+        { init = \_ -> ( 0, Cmd.none )
         , view = view
-        , subscriptions = (\_ -> AnimationFrame.diffs Basics.identity)
-        , update = (\dt time -> ( time + dt / 200, Cmd.none ))
+        , subscriptions = \_ -> E.onAnimationFrameDelta NewDiff
+        , update = update 
         }
 
 
-view : Float -> Html Time
+view : Float -> Html msg
 view time =
     WebGL.toHtml
         [ width 400
         , height 400
-        , style [ ( "display", "block" ) ]
+        , style "display" "block"
         ]
         [ WebGL.entity
             vertexShader
@@ -40,17 +51,16 @@ view time =
 
 
 type alias Uniforms =
-    { 
-     perspective : Mat4
+    { perspective : Mat4
     , camera : Mat4
     , shade : Float
-    , time: Float
+    , time : Float
     }
 
 
 uniforms : Float -> Uniforms
 uniforms time =
-    {  perspective = Mat4.makePerspective 45 1 0.01 100
+    { perspective = Mat4.makePerspective 45 1 0.01 100
     , camera = Mat4.makeLookAt (vec3 0 0 5) (vec3 0 0 0) (vec3 0 1 0)
     , shade = 0.8
     , time = time
@@ -70,48 +80,33 @@ type alias Vertex =
 cubeMesh : Mesh Vertex
 cubeMesh =
     let
-        tl  =
+        bottomRight =
             vec3 1 -1 0
-        tr =
+        topRight =
             vec3 1 1 0
-        bl =
+        bottomLeft =
             vec3 -1 -1 0
-        br =
+        topLeft =
             vec3 -1 1 0
-    in
-        [ face Color.green tl tr br bl
-
-        ]
-            |> List.concat
+        red =
+            vec3 1 0 0
+        green =
+            vec3 0 1 0
+        blue =
+            vec3 0 0 1 
+       in
+            [
+                (Vertex bottomLeft green, Vertex topRight green, Vertex topLeft red),
+                (Vertex bottomLeft red, Vertex bottomRight red, Vertex topRight red)
+            ] 
             |> WebGL.triangles
-
-
-face : Color -> Vec3 -> Vec3 -> Vec3 -> Vec3 -> List ( Vertex, Vertex, Vertex )
-face rawColor a b c d =
-    let
-        color =
-            let
-                c =
-                    Color.toRgb rawColor
-            in
-                vec3
-                    (toFloat c.red / 255)
-                    (toFloat c.green / 255)
-                    (toFloat c.blue / 255)
-
-        vertex position =
-            Vertex color position
-    in
-        [ ( vertex a, vertex b, vertex c )
-        , ( vertex c, vertex d, vertex a )
-        ]
 
 
 
 -- Shaders
 
 
-vertexShader : Shader Vertex Uniforms { vcolor : Vec3, vposition: Vec3 }
+vertexShader : Shader Vertex Uniforms { vcolor : Vec3, vposition : Vec3 }
 vertexShader =
     [glsl|
         attribute vec3 position;
@@ -129,7 +124,7 @@ vertexShader =
     |]
 
 
-fragmentShader : Shader {} Uniforms { vcolor : Vec3, vposition: Vec3 }
+fragmentShader : Shader {} Uniforms { vcolor : Vec3, vposition : Vec3 }
 fragmentShader =
     [glsl|
         precision mediump float;
